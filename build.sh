@@ -1,1 +1,1 @@
-gcc comp.c qsort.c bt.c -o comp
+gcc comp.c qsort.c hf.c -o comp
