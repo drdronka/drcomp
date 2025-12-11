@@ -103,6 +103,11 @@ void hf_fill_prefix_tab(
   uint8_t *curr_prefix,
   uint32_t curr_prefix_size)
 {
+  if(curr_prefix_size == 0)
+  {
+    memset(tab, 0, sizeof(hf_prefix_tab_t));
+  }
+
   if(root->left)
   { 
     uint8_t *left_prefix = (uint8_t*)malloc(sizeof(uint8_t) * (curr_prefix_size + 1));
@@ -129,8 +134,5 @@ void hf_fill_prefix_tab(
     for(uint32_t n = 0; n < curr_prefix_size; n++)
       tab->prefix[root->char_val][n] = curr_prefix[n];
     tab->size[root->char_val] = curr_prefix_size;
-    printf("adding prefix: char[%c] prefix: \n", root->char_val);
-    for(uint32_t n = 0; n < curr_prefix_size; n++) printf("%u", curr_prefix[n]);
-    printf("\n");
   }
 }

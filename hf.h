@@ -23,7 +23,6 @@ hf_node_t *hf_node_ll_get_first(hf_node_t **root);
 void hf_node_ll_print(hf_node_t *root);
 hf_node_t *hf_node_bt_merge(hf_node_t *node0, hf_node_t *node1);
 void hf_node_bt_print(hf_node_t *root);
-
 void hf_fill_prefix_tab(
   hf_node_t *root, 
   hf_prefix_tab_t *tab,

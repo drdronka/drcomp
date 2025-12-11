@@ -64,16 +64,31 @@ comp_data_t *comp_run(uint8_t *input, uint32_t size)
   //hf_node_bt_print(hf_root);
 
   hf_prefix_tab_t prefix_tab;
-  memset(&prefix_tab, 0, sizeof(prefix_tab));
-
   hf_fill_prefix_tab(hf_root, &prefix_tab, NULL, 0);
+
+  uint8_t tmp_data[1000];
+  uint32_t tmp_data_id = 0;
+  for(uint32_t n = 0; n < size; n++)
+  {
+    for(uint32_t i = 0; i < prefix_tab.size[input[n]]; i++)
+    {
+      tmp_data[tmp_data_id++] = prefix_tab.prefix[input[n]][i];
+    }
+  }
+
+  printf("compressed data:\n");
+  for(uint32_t n = 0; n < tmp_data_id; n++)
+    printf("%c", tmp_data[n] + '0');
+  printf("\n");
+
+  printf("compression ratio %0.2f\n", (float)((size * 8) - tmp_data_id) / (float)(size * 8));
 
   comp_data_t *comp_data = (comp_data_t*)malloc(sizeof(comp_data_t));
 
   return comp_data;
 }
 
-uint8_t *test_str = "Toady, zlap mi te gumisie";
+uint8_t *test_str = "Toady, zlap mi te gumisieeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 void main()
 {
