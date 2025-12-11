@@ -2,14 +2,14 @@
 #include <string.h>
 #include <malloc.h>
 
-#include "hf.h"
+#include "huffman.h"
 
-hf_node_t *hf_node_create(uint8_t char_val, uint32_t char_dens)
+hf_node_t *hf_node_create(uint8_t byte_val, uint32_t byte_dens)
 {
   hf_node_t *node = (hf_node_t*)malloc(sizeof(hf_node_t));
   memset(node, 0, sizeof(hf_node_t));
-  node->char_val = char_val;
-  node->char_dens = char_dens;
+  node->byte_val = byte_val;
+  node->byte_dens = byte_dens;
   return node;
 }
 
@@ -25,7 +25,7 @@ void hf_node_ll_insert(hf_node_t **root, hf_node_t *new_node)
   {
     *root = new_node;
   }
-  else if(new_node->char_dens < (*root)->char_dens)
+  else if(new_node->byte_dens < (*root)->byte_dens)
   {
     new_node->next = *root;
     *root = new_node;
@@ -36,7 +36,7 @@ void hf_node_ll_insert(hf_node_t **root, hf_node_t *new_node)
   
     while(tmp_node->next)
     {
-      if(tmp_node->next->char_dens < new_node->char_dens)
+      if(tmp_node->next->byte_dens < new_node->byte_dens)
       {
         tmp_node = tmp_node->next;
       }
@@ -67,14 +67,14 @@ void hf_node_ll_print(hf_node_t *root)
   {
     printf(
       "hf_node: char[%c][0x%0.2x] dens[%u]\n", 
-      root->char_val, root->char_val, root->char_dens);
+      root->byte_val, root->byte_val, root->byte_dens);
     root = root->next;
   }
 }
 
 hf_node_t *hf_node_bt_merge(hf_node_t *node0, hf_node_t *node1)
 {
-  hf_node_t *new_node = hf_node_create(0, node0->char_dens + node1->char_dens);
+  hf_node_t *new_node = hf_node_create(0, node0->byte_dens + node1->byte_dens);
   new_node->left = node0;
   new_node->right = node1;
   return new_node;
@@ -89,7 +89,7 @@ void hf_node_bt_print(hf_node_t *root)
 
     if(!(root->left) && !(root->right))
     {
-      printf("bt node [%c][%u]\n", root->char_val, root->char_dens);
+      printf("bt node [%c][%u]\n", root->byte_val, root->byte_dens);
     }
 
     if(root->right)
@@ -130,9 +130,9 @@ void hf_fill_prefix_tab(
   
   if(!(root->left) && !(root->right))
   {
-    tab->prefix[root->char_val] = (uint8_t*)malloc(sizeof(uint8_t) * curr_prefix_size);
+    tab->prefix[root->byte_val] = (uint8_t*)malloc(sizeof(uint8_t) * curr_prefix_size);
     for(uint32_t n = 0; n < curr_prefix_size; n++)
-      tab->prefix[root->char_val][n] = curr_prefix[n];
-    tab->size[root->char_val] = curr_prefix_size;
+      tab->prefix[root->byte_val][n] = curr_prefix[n];
+    tab->size[root->byte_val] = curr_prefix_size;
   }
 }
