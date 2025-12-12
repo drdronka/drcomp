@@ -1,0 +1,1 @@
+Huffman based compression tool
