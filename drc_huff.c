@@ -5,7 +5,7 @@
 #include "drc_huff.h"
 #include "drc_log.h"
 
-static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_dens);
+static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight);
 static void             drc_huff_node_destroy(drc_huff_node_t *node);
 static void             drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node);
 static drc_huff_node_t *drc_huff_ll_get_first(drc_huff_node_t **root);
@@ -13,12 +13,12 @@ static drc_huff_node_t *drc_huff_bt_merge(drc_huff_node_t *node0, drc_huff_node_
 
 /// LOCAL FUNC ///
 
-static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_dens)
+static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight)
 {
   drc_huff_node_t *node = (drc_huff_node_t*)malloc(sizeof(drc_huff_node_t));
   memset(node, 0, sizeof(drc_huff_node_t));
   node->byte_val = byte_val;
-  node->byte_dens = byte_dens;
+  node->byte_weight = byte_weight;
   return node;
 }
 
@@ -34,7 +34,7 @@ static void drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node
   {
     *root = new_node;
   }
-  else if(new_node->byte_dens < (*root)->byte_dens)
+  else if(new_node->byte_weight < (*root)->byte_weight)
   {
     new_node->next = *root;
     *root = new_node;
@@ -45,7 +45,7 @@ static void drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node
   
     while(tmp_node->next)
     {
-      if(tmp_node->next->byte_dens < new_node->byte_dens)
+      if(tmp_node->next->byte_weight < new_node->byte_weight)
       {
         tmp_node = tmp_node->next;
       }
@@ -71,7 +71,7 @@ static drc_huff_node_t *drc_huff_ll_get_first(drc_huff_node_t **root)
 
 static drc_huff_node_t *drc_huff_bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1)
 {
-  drc_huff_node_t *new_node = drc_huff_node_create(0, node0->byte_dens + node1->byte_dens);
+  drc_huff_node_t *new_node = drc_huff_node_create(0, node0->byte_weight + node1->byte_weight);
   new_node->left = node0;
   new_node->right = node1;
   return new_node;
@@ -110,13 +110,13 @@ void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
   drc_huff_node_t *node0 = drc_huff_ll_get_first(root);
   drc_huff_node_t *node1 = drc_huff_ll_get_first(root);
 
-  DRC_LOG_DEBUG("merging nodes:\n[char][hex][dens]\n");
+  DRC_LOG_DEBUG("merging nodes:\n[char][hex][weight]\n");
 
   while(node1)
   {
     DRC_LOG_DEBUG("[%c][%0.2x][%u] - [%c][%0.2x][%u]\n", 
-      node0->byte_val, node0->byte_val, node0->byte_dens,
-      node1->byte_val, node1->byte_val, node1->byte_dens);
+      node0->byte_val, node0->byte_val, node0->byte_weight,
+      node1->byte_val, node1->byte_val, node1->byte_weight);
 
     drc_huff_node_t *new_node = drc_huff_bt_merge(node0, node1);
     drc_huff_ll_insert(root, new_node);
@@ -157,7 +157,7 @@ void drc_huff_bt_print(drc_huff_node_t *root)
     {
       printf(
         "huff bt node [%c][0x%0.2x] weight[%u]\n", 
-        root->byte_val, root->byte_val, root->byte_dens);
+        root->byte_val, root->byte_val, root->byte_weight);
     }
 
     if(root->right)
@@ -171,7 +171,7 @@ void drc_huff_ll_print(drc_huff_node_t *root)
   {
     printf(
       "huff ll node [%c][0x%0.2x] weight[%u]\n", 
-      root->byte_val, root->byte_val, root->byte_dens);
+      root->byte_val, root->byte_val, root->byte_weight);
     root = root->next;
   }
 }

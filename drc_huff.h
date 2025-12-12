@@ -12,7 +12,7 @@ typedef struct drc_huff_stats
 typedef struct drc_huff_node
 {
   uint8_t byte_val;
-  uint32_t byte_dens;
+  uint32_t byte_weight;
   struct drc_huff_node *left;
   struct drc_huff_node *right;
   struct drc_huff_node *next;
