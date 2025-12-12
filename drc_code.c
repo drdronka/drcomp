@@ -19,11 +19,8 @@ static void tab_fill(
 {
   if(root->left)
   { 
-    uint8_t *left_code = (uint8_t*)malloc(sizeof(uint8_t) * (curr_code_size + 1));
-    for(uint32_t n = 0; n < curr_code_size; n++)
-    {
-      left_code[n] = curr_code[n];
-    }
+    uint8_t *left_code = (uint8_t*)malloc(curr_code_size + 1);
+    memcpy(left_code, curr_code, curr_code_size);
     left_code[curr_code_size] = 0;
     tab_fill(root->left, tab, left_code, curr_code_size + 1);
     free(left_code);
@@ -31,11 +28,8 @@ static void tab_fill(
 
   if(root->right)
   { 
-    uint8_t *right_code = (uint8_t*)malloc(sizeof(uint8_t) * (curr_code_size + 1));
-    for(uint32_t n = 0; n < curr_code_size; n++)
-    {
-      right_code[n] = curr_code[n];
-    }
+    uint8_t *right_code = (uint8_t*)malloc(curr_code_size + 1);
+    memcpy(right_code, curr_code, curr_code_size);
     right_code[curr_code_size] = 1;
     tab_fill(root->right, tab, right_code, curr_code_size + 1);
     free(right_code);
@@ -43,11 +37,8 @@ static void tab_fill(
   
   if(!(root->left) && !(root->right))
   {
-    tab->code[root->byte_val] = (uint8_t*)malloc(sizeof(uint8_t) * curr_code_size);
-    for(uint32_t n = 0; n < curr_code_size; n++)
-    {
-      tab->code[root->byte_val][n] = curr_code[n];
-    }
+    tab->code[root->byte_val] = (uint8_t*)malloc(curr_code_size);
+    memcpy(tab->code[root->byte_val], curr_code, curr_code_size);
     tab->size[root->byte_val] = curr_code_size;
   }
 }

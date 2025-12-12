@@ -11,7 +11,7 @@ typedef struct drc_code_tab
   uint32_t size[BYTE_RANGE];
 } drc_code_tab_t;
 
-drc_code_tab_t   *drc_code_tab_calc(drc_huff_stats_t *stats);
-void              drc_code_tab_destroy(drc_code_tab_t *tab);
+drc_code_tab_t *drc_code_tab_calc(drc_huff_stats_t *stats);
+void            drc_code_tab_destroy(drc_code_tab_t *tab);
 
 #endif

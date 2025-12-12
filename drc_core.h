@@ -13,6 +13,6 @@ typedef struct drc_core_pack
 } drc_core_pack_t;
 
 drc_core_pack_t *drc_core_compress(uint8_t *input, uint32_t size);
-void drc_core_pack_destroy(drc_core_pack_t *pack);
+void             drc_core_pack_destroy(drc_core_pack_t *pack);
 
 #endif
