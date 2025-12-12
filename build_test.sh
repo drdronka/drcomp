@@ -1,1 +1,1 @@
-gcc test.c comp.c qsort.c huffman.c -o test
+gcc drc_test.c drc_core.c drc_code.c -o test
