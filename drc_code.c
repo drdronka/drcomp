@@ -3,6 +3,7 @@
 #include <malloc.h>
 
 #include "drc_code.h"
+#include "drc_log.h"
 
 // hybrid bintree/linkedlist structure for Huffman tree
 typedef struct hf_node
@@ -136,13 +137,13 @@ void hf_bt_construct(hf_node_t **root, drc_code_stats_t *stats)
   hf_node_t *node0 = hf_ll_get_first(root);
   hf_node_t *node1 = hf_ll_get_first(root);
 
-  //printf("merging nodes:\n[char][hex][dens]\n");
+  DRC_LOG_DEBUG("merging nodes:\n[char][hex][dens]\n");
 
   while(node1)
   {
-    //printf("[%c][%0.2x][%u] - [%c][%0.2x][%u]\n", 
-    //  node0->byte_val, node0->byte_val, node0->byte_dens,
-    //  node1->byte_val, node1->byte_val, node1->byte_dens);
+    DRC_LOG_DEBUG("[%c][%0.2x][%u] - [%c][%0.2x][%u]\n", 
+      node0->byte_val, node0->byte_val, node0->byte_dens,
+      node1->byte_val, node1->byte_val, node1->byte_dens);
 
     hf_node_t *new_node = hf_bt_merge(node0, node1);
     hf_ll_insert(root, new_node);

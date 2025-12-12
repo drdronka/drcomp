@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "drc_core.h"
+#include "drc_log.h"
 
 uint8_t *test_str = "Toady, zlap mi te gumisieeeeeeeeeeeeeeeeeeeeeee";
 
