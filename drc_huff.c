@@ -1,0 +1,179 @@
+#include <stdint.h>
+#include <malloc.h>
+#include <string.h>
+
+#include "drc_huff.h"
+#include "drc_log.h"
+
+static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_dens);
+static void             drc_huff_node_destroy(drc_huff_node_t *node);
+static void             drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node);
+static drc_huff_node_t *drc_huff_ll_get_first(drc_huff_node_t **root);
+static drc_huff_node_t *drc_huff_bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1);
+
+/// LOCAL FUNC ///
+
+static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_dens)
+{
+  drc_huff_node_t *node = (drc_huff_node_t*)malloc(sizeof(drc_huff_node_t));
+  memset(node, 0, sizeof(drc_huff_node_t));
+  node->byte_val = byte_val;
+  node->byte_dens = byte_dens;
+  return node;
+}
+
+static void drc_huff_node_destroy(drc_huff_node_t *node)
+{
+  free(node);
+}
+
+// automatically sorted
+static void drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node)
+{
+  if(!(*root))
+  {
+    *root = new_node;
+  }
+  else if(new_node->byte_dens < (*root)->byte_dens)
+  {
+    new_node->next = *root;
+    *root = new_node;
+  }
+  else
+  {
+    drc_huff_node_t *tmp_node = *root;
+  
+    while(tmp_node->next)
+    {
+      if(tmp_node->next->byte_dens < new_node->byte_dens)
+      {
+        tmp_node = tmp_node->next;
+      }
+      else
+      {
+        new_node->next = tmp_node->next;
+        tmp_node->next = new_node;
+        return;
+      }
+    }
+
+    tmp_node->next = new_node;
+  }
+}
+
+static drc_huff_node_t *drc_huff_ll_get_first(drc_huff_node_t **root)
+{
+  drc_huff_node_t *node = *root;
+  if(node)
+    *root = node->next;
+  return node;
+}
+
+static drc_huff_node_t *drc_huff_bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1)
+{
+  drc_huff_node_t *new_node = drc_huff_node_create(0, node0->byte_dens + node1->byte_dens);
+  new_node->left = node0;
+  new_node->right = node1;
+  return new_node;
+}
+
+// GLOBAL FUNC ///
+
+drc_huff_stats_t *drc_huff_stats_calc(uint8_t *input, uint32_t size)
+{
+  drc_huff_stats_t *stats = (drc_huff_stats_t*)malloc(sizeof(drc_huff_stats_t));
+  memset(stats, 0, sizeof(drc_huff_stats_t));
+
+  for(uint32_t n = 0; n < size; n++)
+  {
+    stats->weight[input[n]]++;
+  }
+
+  return stats;
+}
+
+void drc_huff_stats_destroy(drc_huff_stats_t *stats)
+{
+  free(stats);
+}
+
+void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
+{
+  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  {
+    if(stats->weight[n])
+    {
+      drc_huff_ll_insert(root, drc_huff_node_create(n, stats->weight[n]));
+    }
+  }
+
+  drc_huff_node_t *node0 = drc_huff_ll_get_first(root);
+  drc_huff_node_t *node1 = drc_huff_ll_get_first(root);
+
+  DRC_LOG_DEBUG("merging nodes:\n[char][hex][dens]\n");
+
+  while(node1)
+  {
+    DRC_LOG_DEBUG("[%c][%0.2x][%u] - [%c][%0.2x][%u]\n", 
+      node0->byte_val, node0->byte_val, node0->byte_dens,
+      node1->byte_val, node1->byte_val, node1->byte_dens);
+
+    drc_huff_node_t *new_node = drc_huff_bt_merge(node0, node1);
+    drc_huff_ll_insert(root, new_node);
+    
+    node0 = drc_huff_ll_get_first(root);
+    node1 = drc_huff_ll_get_first(root);
+  }
+
+  drc_huff_ll_insert(root, node0);
+}
+
+void drc_huff_bt_destroy(drc_huff_node_t *root)
+{
+  if(root)
+  {
+    if(root->left)
+    {
+      drc_huff_bt_destroy(root->left);
+    }
+
+    if(root->right)
+    {
+      drc_huff_bt_destroy(root->right);
+    }
+
+    drc_huff_node_destroy(root);
+  }
+}
+
+void drc_huff_bt_print(drc_huff_node_t *root)
+{
+  if(root)
+  {
+    if(root->left)
+      drc_huff_bt_print(root->left);
+
+    if(!(root->left) && !(root->right))
+    {
+      printf(
+        "huff bt node [%c][0x%0.2x] weight[%u]\n", 
+        root->byte_val, root->byte_val, root->byte_dens);
+    }
+
+    if(root->right)
+      drc_huff_bt_print(root->right);
+  }
+}
+
+void drc_huff_ll_print(drc_huff_node_t *root)
+{
+  while(root)
+  {
+    printf(
+      "huff ll node [%c][0x%0.2x] weight[%u]\n", 
+      root->byte_val, root->byte_val, root->byte_dens);
+    root = root->next;
+  }
+}
+
+

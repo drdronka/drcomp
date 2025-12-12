@@ -5,13 +5,14 @@
 
 #include "drc_core.h"
 #include "drc_code.h"
+#include "drc_huff.h"
 #include "drc_log.h"
 
 drc_core_pack_t *drc_core_compress(uint8_t *input, uint32_t size) 
 { 
   printf("input[%s] size[%u]\n", input, size);  
 
-  drc_code_stats_t *stats = drc_code_stats_calc(input, size);
+  drc_huff_stats_t *stats = drc_huff_stats_calc(input, size);
   drc_code_tab_t *tab = drc_code_tab_calc(stats);
 
   uint8_t tmp_data[1000];
@@ -31,7 +32,7 @@ drc_core_pack_t *drc_core_compress(uint8_t *input, uint32_t size)
   drc_core_pack_t *pack = (drc_core_pack_t*)malloc(sizeof(drc_core_pack_t));
 
   drc_code_tab_destroy(tab);
-  drc_code_stats_destroy(stats);
+  drc_huff_stats_destroy(stats);
 
   return pack;
 }
