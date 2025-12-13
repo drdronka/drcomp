@@ -1,1 +1,1 @@
-gcc drc_test.c drc_core.c drc_huff.c -o test
+gcc src/drc_test.c src/drc_core.c src/drc_huff.c -o test -Iinc
