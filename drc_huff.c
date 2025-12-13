@@ -6,12 +6,13 @@
 #include "drc_log.h"
 
 static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight);
-static void             drc_huff_node_destroy(drc_huff_node_t *node);
-static void             drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node);
+static void drc_huff_node_destroy(drc_huff_node_t *node);
+static void drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node);
 static drc_huff_node_t *drc_huff_ll_get_first(drc_huff_node_t **root);
 static drc_huff_node_t *drc_huff_bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1);
+static void tab_fill(drc_huff_node_t *root, drc_huff_tab_t *tab, uint8_t *curr_code, uint32_t curr_code_size);
 
-/// LOCAL FUNC ///
+  /// LOCAL FUNC ///
 
 static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight)
 {
@@ -75,6 +76,38 @@ static drc_huff_node_t *drc_huff_bt_merge(drc_huff_node_t *node0, drc_huff_node_
   new_node->left = node0;
   new_node->right = node1;
   return new_node;
+}
+
+static void tab_fill(
+  drc_huff_node_t *root, 
+  drc_huff_tab_t *tab,
+  uint8_t *curr_code,
+  uint32_t curr_code_size)
+{
+  if(root->left)
+  { 
+    uint8_t *left_code = (uint8_t*)malloc(curr_code_size + 1);
+    memcpy(left_code, curr_code, curr_code_size);
+    left_code[curr_code_size] = 0;
+    tab_fill(root->left, tab, left_code, curr_code_size + 1);
+    free(left_code);
+  }
+
+  if(root->right)
+  { 
+    uint8_t *right_code = (uint8_t*)malloc(curr_code_size + 1);
+    memcpy(right_code, curr_code, curr_code_size);
+    right_code[curr_code_size] = 1;
+    tab_fill(root->right, tab, right_code, curr_code_size + 1);
+    free(right_code);
+  }
+  
+  if(!(root->left) && !(root->right))
+  {
+    tab->code[root->byte_val] = (uint8_t*)malloc(curr_code_size);
+    memcpy(tab->code[root->byte_val], curr_code, curr_code_size);
+    tab->size[root->byte_val] = curr_code_size;
+  }
 }
 
 // GLOBAL FUNC ///
@@ -176,4 +209,25 @@ void drc_huff_ll_print(drc_huff_node_t *root)
   }
 }
 
+drc_huff_tab_t *drc_huff_tab_calc(drc_huff_stats_t *stats)
+{
+  drc_huff_node_t *root = NULL;
+  drc_huff_bt_construct(&root, stats);
 
+  drc_huff_tab_t *tab = (drc_huff_tab_t*)malloc(sizeof(drc_huff_tab_t));
+  memset(tab, 0, sizeof(drc_huff_tab_t));
+  tab_fill(root, tab, NULL, 0);
+
+  drc_huff_bt_destroy(root);
+
+  return tab;
+}
+
+void drc_huff_tab_destroy(drc_huff_tab_t *tab)
+{
+  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  {
+    free(tab->code[n]);
+  }
+  free(tab);
+}
