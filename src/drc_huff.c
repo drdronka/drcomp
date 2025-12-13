@@ -6,16 +6,24 @@
 #include "drc_huff.h"
 #include "drc_log.h"
 
-static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight);
-static void drc_huff_node_destroy(drc_huff_node_t *node);
-static void drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node);
-static drc_huff_node_t *drc_huff_ll_get_first(drc_huff_node_t **root);
-static drc_huff_node_t *drc_huff_bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1);
-static void tab_fill(drc_huff_node_t *root, drc_huff_tab_t *tab, uint8_t *curr_code, uint32_t curr_code_size);
+static drc_huff_node_t *node_create(uint8_t byte_val, uint32_t byte_weight);
+static void node_destroy(drc_huff_node_t *node);
+static void ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node);
+static drc_huff_node_t *ll_get_first(drc_huff_node_t **root);
+static void ll_print(drc_huff_node_t *root);
+static drc_huff_node_t *bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1);
+static void bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats);
+static void bt_destroy(drc_huff_node_t *root);
+static void bt_print(drc_huff_node_t *root);
+static void tab_fill(
+  drc_huff_node_t *root, 
+  drc_huff_tab_t *tab, 
+  uint8_t *curr_code, 
+  uint32_t curr_code_size);
 
   /// LOCAL FUNC ///
 
-static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight)
+static drc_huff_node_t *node_create(uint8_t byte_val, uint32_t byte_weight)
 {
   drc_huff_node_t *node = (drc_huff_node_t*)malloc(sizeof(drc_huff_node_t));
   memset(node, 0, sizeof(drc_huff_node_t));
@@ -24,13 +32,13 @@ static drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_wei
   return node;
 }
 
-static void drc_huff_node_destroy(drc_huff_node_t *node)
+static void node_destroy(drc_huff_node_t *node)
 {
   free(node);
 }
 
 // automatically sorted
-static void drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node)
+static void ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node)
 {
   if(!(*root))
   {
@@ -63,7 +71,7 @@ static void drc_huff_ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node
   }
 }
 
-static drc_huff_node_t *drc_huff_ll_get_first(drc_huff_node_t **root)
+static drc_huff_node_t *ll_get_first(drc_huff_node_t **root)
 {
   drc_huff_node_t *node = *root;
   if(node)
@@ -71,9 +79,9 @@ static drc_huff_node_t *drc_huff_ll_get_first(drc_huff_node_t **root)
   return node;
 }
 
-static drc_huff_node_t *drc_huff_bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1)
+static drc_huff_node_t *bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1)
 {
-  drc_huff_node_t *new_node = drc_huff_node_create(0, node0->byte_weight + node1->byte_weight);
+  drc_huff_node_t *new_node = node_create(0, node0->byte_weight + node1->byte_weight);
   new_node->left = node0;
   new_node->right = node1;
   return new_node;
@@ -111,6 +119,55 @@ static void tab_fill(
   }
 }
 
+static void bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
+{
+  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  {
+    if(stats->weight[n])
+    {
+      ll_insert(root, node_create(n, stats->weight[n]));
+    }
+  }
+
+  drc_huff_node_t *node0 = ll_get_first(root);
+  drc_huff_node_t *node1 = ll_get_first(root);
+
+  DRC_LOG_DEBUG("merging nodes:\n[char][hex][weight]\n");
+
+  while(node1)
+  {
+    DRC_LOG_DEBUG("[%c][%0.2x][%u] - [%c][%0.2x][%u]\n", 
+      node0->byte_val, node0->byte_val, node0->byte_weight,
+      node1->byte_val, node1->byte_val, node1->byte_weight);
+
+    drc_huff_node_t *new_node = bt_merge(node0, node1);
+    ll_insert(root, new_node);
+    
+    node0 = ll_get_first(root);
+    node1 = ll_get_first(root);
+  }
+
+  ll_insert(root, node0);
+}
+
+static void bt_destroy(drc_huff_node_t *root)
+{
+  if(root)
+  {
+    if(root->left)
+    {
+      bt_destroy(root->left);
+    }
+
+    if(root->right)
+    {
+      bt_destroy(root->right);
+    }
+
+    node_destroy(root);
+  }
+}
+
 // GLOBAL FUNC ///
 
 drc_huff_stats_t *drc_huff_stats_calc(uint8_t *input, uint32_t size)
@@ -129,55 +186,6 @@ drc_huff_stats_t *drc_huff_stats_calc(uint8_t *input, uint32_t size)
 void drc_huff_stats_destroy(drc_huff_stats_t *stats)
 {
   free(stats);
-}
-
-void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
-{
-  for(uint32_t n = 0; n < BYTE_RANGE; n++)
-  {
-    if(stats->weight[n])
-    {
-      drc_huff_ll_insert(root, drc_huff_node_create(n, stats->weight[n]));
-    }
-  }
-
-  drc_huff_node_t *node0 = drc_huff_ll_get_first(root);
-  drc_huff_node_t *node1 = drc_huff_ll_get_first(root);
-
-  DRC_LOG_DEBUG("merging nodes:\n[char][hex][weight]\n");
-
-  while(node1)
-  {
-    DRC_LOG_DEBUG("[%c][%0.2x][%u] - [%c][%0.2x][%u]\n", 
-      node0->byte_val, node0->byte_val, node0->byte_weight,
-      node1->byte_val, node1->byte_val, node1->byte_weight);
-
-    drc_huff_node_t *new_node = drc_huff_bt_merge(node0, node1);
-    drc_huff_ll_insert(root, new_node);
-    
-    node0 = drc_huff_ll_get_first(root);
-    node1 = drc_huff_ll_get_first(root);
-  }
-
-  drc_huff_ll_insert(root, node0);
-}
-
-void drc_huff_bt_destroy(drc_huff_node_t *root)
-{
-  if(root)
-  {
-    if(root->left)
-    {
-      drc_huff_bt_destroy(root->left);
-    }
-
-    if(root->right)
-    {
-      drc_huff_bt_destroy(root->right);
-    }
-
-    drc_huff_node_destroy(root);
-  }
 }
 
 void drc_huff_bt_print(drc_huff_node_t *root)
@@ -213,13 +221,13 @@ void drc_huff_ll_print(drc_huff_node_t *root)
 drc_huff_tab_t *drc_huff_tab_calc(drc_huff_stats_t *stats)
 {
   drc_huff_node_t *root = NULL;
-  drc_huff_bt_construct(&root, stats);
+  bt_construct(&root, stats);
 
   drc_huff_tab_t *tab = (drc_huff_tab_t*)malloc(sizeof(drc_huff_tab_t));
   memset(tab, 0, sizeof(drc_huff_tab_t));
   tab_fill(root, tab, NULL, 0);
 
-  drc_huff_bt_destroy(root);
+  bt_destroy(root);
 
   return tab;
 }

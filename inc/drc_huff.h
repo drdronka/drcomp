@@ -26,10 +26,6 @@ typedef struct drc_huff_node
 
 drc_huff_stats_t *drc_huff_stats_calc(uint8_t *input, uint32_t size);
 void drc_huff_stats_destroy(drc_huff_stats_t *stats);
-void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats);
-void drc_huff_bt_destroy(drc_huff_node_t *root);
-void drc_huff_bt_print(drc_huff_node_t *root);
-void drc_huff_ll_print(drc_huff_node_t *root);
 drc_huff_tab_t *drc_huff_tab_calc(drc_huff_stats_t *stats);
 void drc_huff_tab_destroy(drc_huff_tab_t *tab);
 

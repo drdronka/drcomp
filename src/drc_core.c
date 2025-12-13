@@ -9,7 +9,7 @@
 
 drc_core_pack_t *drc_core_compress(uint8_t *input, uint32_t size) 
 { 
-  printf("input[%s] size[%u]\n", input, size);  
+  DRC_LOG_INFO("input[%s] size[%u]\n", input, size);  
 
   drc_huff_stats_t *stats = drc_huff_stats_calc(input, size);
   drc_huff_tab_t *tab = drc_huff_tab_calc(stats);
