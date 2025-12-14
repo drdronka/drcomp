@@ -20,6 +20,7 @@ static void tab_fill(
   drc_huff_tab_t *tab, 
   uint8_t *curr_code, 
   uint32_t curr_code_size);
+static void bt_finish(drc_huff_node_t *root);
 
 /// LOCAL FUNC ///
 
@@ -71,6 +72,28 @@ static drc_huff_node_t *bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1)
   new_node->left = node0;
   new_node->right = node1;
   return new_node;
+}
+
+static void bt_finish(drc_huff_node_t *root)
+{
+  if(root)
+  {
+    if(root->left)
+    {
+      bt_finish(root->left);
+    }
+
+    if(!(root->left) && !(root->right))
+    {
+      DRC_LOG_DEBUG("value_node: [%c][0x%0.2x]\n", FILTER_SPEC_CHARS(root->byte_val), root->byte_val);
+      root->val_node = 1;
+    }
+
+    if(root->right)
+    {
+      bt_finish(root->right);
+    }
+  }
 }
 
 static void tab_fill(
@@ -188,7 +211,7 @@ void drc_huff_stats_write(FILE* file_in, drc_huff_stats_t *stats)
       buf[weight_size - i - 1] = (uint8_t)((stats->weight[n] >> (i * 8)) & 0xFF);
     }
 
-    fwrite(buf, weight_size, 1, file_in);
+    fwrite(buf, 1, weight_size, file_in);
   }
 }
 
@@ -204,7 +227,7 @@ drc_huff_stats_t *drc_huff_stats_read(FILE* file_in)
     uint8_t weight_size = sizeof(stats->weight[0]);
     uint8_t buf[sizeof(stats->weight[0])];
 
-    fread(buf, weight_size, 1, file_in);
+    fread(buf, 1, weight_size, file_in);
 
     for(uint8_t i = 0; i < weight_size; i++)
     {
@@ -304,8 +327,10 @@ void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
     node0 = ll_get_first(root);
     node1 = ll_get_first(root);
   }
-
   ll_insert(root, node0);
+
+  DRC_LOG_DEBUG("finishing binary tree\n");
+  bt_finish(*root);
 }
 
 void drc_huff_bt_destroy(drc_huff_node_t *root)

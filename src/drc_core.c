@@ -8,6 +8,7 @@
 #include "drc_log.h"
 
 #define COMP_READ_BLOCK_SIZE 16
+#define COMP_WRITE_BLOCK_SIZE 16
 #define BIT_ARRAY_SIZE 16
 #define BIT_ARRAY_MARGIN 4
 
@@ -24,6 +25,8 @@ static void bit_array_truncate(bit_array_t *array);
 static void bit_array_finish(bit_array_t *array);
 static void bit_array_print(bit_array_t *array);
 static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab);
+static void decode_and_write(
+  FILE* file_in, FILE* file_out, drc_huff_node_t *root, uint32_t size, uint8_t remainder_bits);
 
 /// LOCAL FUNC ///
 
@@ -102,7 +105,7 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
     uint8_t buf_in[COMP_READ_BLOCK_SIZE];
 
     size = fread(buf_in, 1, COMP_READ_BLOCK_SIZE, file_in);
-    DRC_LOG_DEBUG("read bytes: [%u]\n", size);
+    DRC_LOG_DEBUG("bytes read: [%u]\n", size);
 
     if(size)
     {
@@ -130,6 +133,70 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
       fwrite(array.data, array.size_bytes, 1, file_out);
     }
   } while(size);
+}
+
+static void decode_and_write(
+  FILE* file_in, FILE* file_out, drc_huff_node_t *root, uint32_t data_size, uint8_t remainder_bits)
+{
+  DRC_LOG_INFO("decoding data\n");
+
+  uint8_t buf_out[COMP_WRITE_BLOCK_SIZE];
+  uint32_t buf_out_idx = 0;
+  uint32_t read_total = 0;
+  uint32_t read_size;
+  uint8_t bit_id;
+  drc_huff_node_t *node = root;
+
+  do
+  {
+    uint8_t buf_in[COMP_READ_BLOCK_SIZE];
+    read_size = fread(buf_in, 1, COMP_READ_BLOCK_SIZE, file_in);
+    DRC_LOG_DEBUG("bytes read: [%u]\n", read_size);
+
+    for(uint32_t n = 0; n < read_size; n++)
+    {
+      DRC_LOG_DEBUG("coded[%0.2x]: ", buf_in[n]);
+
+      if(read_total + n == data_size)
+      {
+        break;
+      }
+
+      uint8_t bit_limit = 8;
+      if(read_total + n == data_size - 1)
+      {
+        bit_limit = remainder_bits;
+      }
+
+      for(uint8_t i = 0; i < bit_limit; i++)
+      {
+        uint8_t buf_bit = (buf_in[n] >> i) & 1;
+        node = buf_bit == 0 ? node->left : node->right;
+
+        if(node->val_node)
+        {
+          DRC_LOG_DEBUG("decoded[%0.2x] ", node->byte_val);
+          buf_out[buf_out_idx] = node->byte_val;
+          buf_out_idx++;
+          node = root;
+        }
+
+        if(buf_out_idx == COMP_READ_BLOCK_SIZE)
+        {
+          fwrite(buf_out, 1, buf_out_idx, file_out);
+          buf_out_idx = 0;
+        }
+      }
+      DRC_LOG_DEBUG("\n");
+    }
+
+    read_total += read_size;
+  } while(read_size);
+
+  if(buf_out_idx)
+  {
+    fwrite(buf_out, 1, buf_out_idx, file_out);
+  }
 }
 
 /// GLOBAL FUNC ///
@@ -178,7 +245,20 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
     return;
   }
 
+  uint32_t coding_tab_size;  
+  uint32_t data_size;
+  uint8_t remainder_bits;
+
   drc_huff_stats_t *stats = drc_huff_stats_read(file_in);
+  coding_tab_size = sizeof(stats->weight[0]) * BYTE_RANGE;
+
+  fseek(file_in, -1, SEEK_END);
+  data_size = ftell(file_in) - coding_tab_size;
+
+  fread(&remainder_bits, 1, 1, file_in);
+
+  DRC_LOG_INFO("coding_tab_size[%u] data_size[%u] reminder_bits[%u]\n",
+    coding_tab_size, data_size, remainder_bits);
 
  #if DRC_LOG_DEBUG_EN
   drc_huff_stats_print(stats);
@@ -186,6 +266,9 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
 
   drc_huff_node_t *root = NULL;
   drc_huff_bt_construct(&root, stats);
+
+  fseek(file_in, coding_tab_size, SEEK_SET);
+  decode_and_write(file_in, file_out, root, data_size, remainder_bits);
 
   drc_huff_bt_destroy(root);
   drc_huff_stats_destroy(stats);

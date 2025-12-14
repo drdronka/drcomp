@@ -19,6 +19,7 @@ typedef struct drc_huff_node
 {
   uint8_t byte_val;
   uint32_t byte_weight;
+  uint8_t val_node;
   struct drc_huff_node *left;
   struct drc_huff_node *right;
   struct drc_huff_node *next;
