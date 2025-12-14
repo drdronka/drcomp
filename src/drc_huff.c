@@ -107,6 +107,32 @@ static void tab_fill(
 
 ///  GLOBAL FUNC ///
 
+void drc_huff_code_print(uint8_t *code, uint8_t size, uint8_t newline)
+{
+  for(uint32_t n = 0; n < size; n++)
+  {
+    DRC_LOG("%c", code[n] + '0');
+  }
+  if(newline)
+  {
+    DRC_LOG("\n");
+  }
+}
+
+drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight)
+{
+  drc_huff_node_t *node = (drc_huff_node_t*)malloc(sizeof(drc_huff_node_t));
+  memset(node, 0, sizeof(drc_huff_node_t));
+  node->byte_val = byte_val;
+  node->byte_weight = byte_weight;
+  return node;
+}
+
+void drc_huff_node_destroy(drc_huff_node_t *node)
+{
+  free(node);
+}
+
 drc_huff_stats_t *drc_huff_stats_calc(uint8_t *input, uint32_t size)
 {
   DRC_LOG_INFO("calculating character stats\n");
@@ -189,6 +215,11 @@ drc_huff_stats_t *drc_huff_stats_read(FILE* file_in)
   return stats;
 }
 
+void drc_huff_stats_destroy(drc_huff_stats_t *stats)
+{
+  free(stats);
+}
+
 void drc_huff_stats_print(drc_huff_stats_t *stats)
 {
   DRC_LOG("character stats:\n");
@@ -198,41 +229,6 @@ void drc_huff_stats_print(drc_huff_stats_t *stats)
     {
       DRC_LOG("char[%c][0x%0.2x] weight[%u]\n", FILTER_SPEC_CHARS(n), n, stats->weight[n]);
     }
-  }
-}
-
-void drc_huff_stats_destroy(drc_huff_stats_t *stats)
-{
-  free(stats);
-}
-
-void drc_huff_bt_print(drc_huff_node_t *root)
-{
-  if(root)
-  {
-    if(root->left)
-      drc_huff_bt_print(root->left);
-
-    if(!(root->left) && !(root->right))
-    {
-      DRC_LOG(
-        "huff bt node [%c][0x%0.2x] weight[%u]\n", 
-        FILTER_SPEC_CHARS(root->byte_val), root->byte_val, root->byte_weight);
-    }
-
-    if(root->right)
-      drc_huff_bt_print(root->right);
-  }
-}
-
-void drc_huff_ll_print(drc_huff_node_t *root)
-{
-  while(root)
-  {
-    DRC_LOG(
-      "huff ll node [%c][0x%0.2x] weight[%u]\n", 
-      FILTER_SPEC_CHARS(root->byte_val), root->byte_val, root->byte_weight);
-    root = root->next;
   }
 }
 
@@ -252,18 +248,29 @@ drc_huff_tab_t *drc_huff_tab_calc(drc_huff_stats_t *stats)
   return tab;
 }
 
-drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight)
+void drc_huff_tab_print(drc_huff_tab_t *tab)
 {
-  drc_huff_node_t *node = (drc_huff_node_t*)malloc(sizeof(drc_huff_node_t));
-  memset(node, 0, sizeof(drc_huff_node_t));
-  node->byte_val = byte_val;
-  node->byte_weight = byte_weight;
-  return node;
+  DRC_LOG("coding table:\n");
+  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  {
+    if(tab->size[n])
+    {
+      DRC_LOG("char[%c][0x%0.2x]: ", FILTER_SPEC_CHARS(n), n);
+      drc_huff_code_print(tab->code[n], tab->size[n], 1);
+    }
+  }
 }
 
-void drc_huff_node_destroy(drc_huff_node_t *node)
+void drc_huff_tab_destroy(drc_huff_tab_t *tab)
 {
-  free(node);
+  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  {
+    if(tab->size[n])
+    {
+      free(tab->code[n]);
+    }
+  }
+  free(tab);
 }
 
 void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
@@ -319,32 +326,41 @@ void drc_huff_bt_destroy(drc_huff_node_t *root)
   }
 }
 
-void drc_huff_tab_print(drc_huff_tab_t *tab)
+void drc_huff_bt_print(drc_huff_node_t *root)
 {
-  DRC_LOG("coding table:\n");
-  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  if(root)
   {
-    if(tab->size[n])
+    if(root->left)
+      drc_huff_bt_print(root->left);
+
+    if(!(root->left) && !(root->right))
     {
-      DRC_LOG("char[%c][0x%0.2x] code[", FILTER_SPEC_CHARS(n), n);
-    
-      for(uint32_t i = 0; i < tab->size[n]; i++)
-      {
-        DRC_LOG("%c", tab->code[n][i] + '0');
-      }
-      DRC_LOG("]\n");
+      DRC_LOG(
+        "huff bt node [%c][0x%0.2x] weight[%u]\n", 
+        FILTER_SPEC_CHARS(root->byte_val), root->byte_val, root->byte_weight);
     }
+
+    if(root->right)
+      drc_huff_bt_print(root->right);
   }
 }
 
-void drc_huff_tab_destroy(drc_huff_tab_t *tab)
+void drc_huff_ll_print(drc_huff_node_t *root)
 {
-  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  while(root)
   {
-    if(tab->size[n])
-    {
-      free(tab->code[n]);
-    }
+    DRC_LOG(
+      "huff ll node [%c][0x%0.2x] weight[%u]\n", 
+      FILTER_SPEC_CHARS(root->byte_val), root->byte_val, root->byte_weight);
+    root = root->next;
   }
-  free(tab);
 }
+
+
+
+
+
+
+
+
+

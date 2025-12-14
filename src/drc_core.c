@@ -23,7 +23,7 @@ static void bit_array_add(bit_array_t *array, uint8_t *code, uint8_t code_size);
 static void bit_array_truncate(bit_array_t *array);
 static void bit_array_finish(bit_array_t *array);
 static void bit_array_print(bit_array_t *array);
-static void code_print(uint8_t *code, uint8_t size);
+static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab);
 
 /// LOCAL FUNC ///
 
@@ -31,7 +31,7 @@ static inline void bit_array_add(bit_array_t *array, uint8_t *code, uint8_t code
 {
 #if DRC_LOG_DEBUG_EN
   DRC_LOG("bit_array_add: ");
-  code_print(code, code_size);
+  drc_huff_code_print(code, code_size, 1);
 #endif
 
   for(uint32_t bit_n = 0; bit_n < code_size; bit_n++)
@@ -89,42 +89,12 @@ static void bit_array_print(bit_array_t *array)
   DRC_LOG("\n");
 }
 
-static void code_print(uint8_t *code, uint8_t size)
+static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
 {
-  for(uint32_t n = 0; n < size; n++)
-  {
-    DRC_LOG("%c", code[n] + '0');
-  }
-  DRC_LOG("\n");
-}
+  DRC_LOG_INFO("encoding data\n");
 
-/// GLOBAL FUNC ///
-
-void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
-{
-  DRC_LOG_INFO("compress: input[%s] output[%s]\n", path_in, path_out);
-
-  FILE* file_in = fopen(path_in, "rb");
-  FILE* file_out = fopen(path_out, "wb");
-
-  if(!file_in || !file_out)
-  {
-    DRC_LOG_ERROR("failed to open file: %s\n", !file_in ? path_in : path_out);
-    return;
-  }
-  
-  drc_huff_stats_t *stats = drc_huff_stats_calc_from_file(file_in);
-  drc_huff_tab_t *tab = drc_huff_tab_calc(stats);
-
-#if DRC_LOG_DEBUG_EN
-  drc_huff_stats_print(stats);
-  drc_huff_tab_print(tab);
-#endif
-
-  drc_huff_stats_write(file_out, stats);
-
-  DRC_LOG_INFO("coding data\n");
   fseek(file_in, 0L, SEEK_SET);
+
   bit_array_t array = {0};
   uint32_t size;
   do
@@ -160,6 +130,33 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
       fwrite(array.data, array.size_bytes, 1, file_out);
     }
   } while(size);
+}
+
+/// GLOBAL FUNC ///
+
+void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
+{
+  DRC_LOG_INFO("compress: input[%s] output[%s]\n", path_in, path_out);
+
+  FILE* file_in = fopen(path_in, "rb");
+  FILE* file_out = fopen(path_out, "wb");
+
+  if(!file_in || !file_out)
+  {
+    DRC_LOG_ERROR("failed to open file: %s\n", !file_in ? path_in : path_out);
+    return;
+  }
+  
+  drc_huff_stats_t *stats = drc_huff_stats_calc_from_file(file_in);
+  drc_huff_tab_t *tab = drc_huff_tab_calc(stats);
+
+#if DRC_LOG_DEBUG_EN
+  drc_huff_stats_print(stats);
+  drc_huff_tab_print(tab);
+#endif
+
+  drc_huff_stats_write(file_out, stats);
+  encode_and_write(file_in, file_out, tab);
 
   drc_huff_tab_destroy(tab);
   drc_huff_stats_destroy(stats);
