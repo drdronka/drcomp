@@ -7,7 +7,98 @@
 #include "drc_huff.h"
 #include "drc_log.h"
 
-#define COMP_BLOCK_SIZE 4
+#define COMP_READ_BLOCK_SIZE 1024
+#define BIT_ARRAY_SIZE 16
+#define BIT_ARRAY_MARGIN 4
+
+typedef struct bit_array
+{
+  uint8_t data[BIT_ARRAY_SIZE];
+  uint8_t rem;
+  uint32_t size_bits;
+  uint32_t size_bytes;
+} bit_array_t;
+
+static void bit_array_add(bit_array_t *array, uint8_t *code, uint8_t code_size);
+static void bit_array_truncate(bit_array_t *array);
+static void bit_array_finish(bit_array_t *array);
+static void bit_array_print(bit_array_t *array);
+static void code_print(uint8_t *code, uint8_t size);
+
+/// LOCAL FUNC ///
+
+static inline void bit_array_add(bit_array_t *array, uint8_t *code, uint8_t code_size)
+{
+#if DRC_LOG_DEBUG_EN
+  DRC_LOG("bit_array_add: ");
+  code_print(code, code_size);
+#endif
+
+  for(uint32_t bit_n = 0; bit_n < code_size; bit_n++)
+  {
+    array->data[array->size_bytes] |= code[bit_n] << (array->size_bits % 8);
+    array->size_bits++;
+    if(array->size_bits % 8 == 0)
+    {
+      array->size_bytes++;
+    }
+  }
+}
+
+static void bit_array_truncate(bit_array_t *array)
+{
+  DRC_LOG_DEBUG("bit_array_truncate: size_bytes[%u] size_bits[%u] remainder[%u]\n", 
+    array->size_bytes, array->size_bits, array->size_bits % 8);
+
+  uint8_t reminder = array->data[array->size_bytes];
+  memset(array->data, 0, sizeof(array->data));
+  if(array->size_bits % 8)
+  {
+    array->data[0] = reminder;
+  }
+  array->size_bits = array->size_bits % 8;
+  array->size_bytes = 0;
+}
+
+static void bit_array_finish(bit_array_t *array)
+{
+  DRC_LOG_DEBUG("bit_array_finish: size_bytes[%u] size_bits[%u] remainder[%u]\n",
+    array->size_bytes, array->size_bits, array->size_bits % 8);
+
+  if(array->size_bits % 8 != 0)
+  {
+    array->data[array->size_bytes + 1] = array->size_bits % 8;
+    array->size_bytes += 2;
+  }
+  else
+  {
+    array->size_bytes++;
+  }
+}
+
+static void bit_array_print(bit_array_t *array)
+{
+  for(uint32_t nd = 0; nd < array->size_bytes; nd++)
+  {
+    for(uint32_t ni = 0; ni < 8; ni++)
+    {
+    DRC_LOG("%c", ((array->data[nd] >> ni) & 1) + '0');
+    }
+    DRC_LOG(" ");
+  }
+  DRC_LOG("\n");
+}
+
+static void code_print(uint8_t *code, uint8_t size)
+{
+  for(uint32_t n = 0; n < size; n++)
+  {
+    DRC_LOG("%c", code[n] + '0');
+  }
+  DRC_LOG("\n");
+}
+
+/// GLOBAL FUNC ///
 
 void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
 {
@@ -18,8 +109,7 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
 
   if(!file_in || !file_out)
   {
-    DRC_LOG_ERROR(
-      "failed to open file: %s\n", !file_in ? path_in : path_out);
+    DRC_LOG_ERROR("failed to open file: %s\n", !file_in ? path_in : path_out);
     return;
   }
   
@@ -32,6 +122,43 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
 #endif
 
   drc_huff_stats_write(file_out, stats);
+
+  fseek(file_in, 0L, SEEK_SET);
+
+  uint8_t buf_in[COMP_READ_BLOCK_SIZE];
+  bit_array_t array = {0};
+  uint32_t size;
+  do
+  {
+    size = fread(buf_in, 1, COMP_READ_BLOCK_SIZE, file_in);
+    DRC_LOG_DEBUG("read bytes: [%u]\n", size);
+
+    if(size)
+    {
+      for(uint32_t n = 0; n < size; n++)
+      {
+        bit_array_add(&array, tab->code[buf_in[n]], tab->size[buf_in[n]]);
+        if(array.size_bytes > (BIT_ARRAY_SIZE - BIT_ARRAY_MARGIN))
+        {
+#if DRC_LOG_DEBUG_EN
+          DRC_LOG_DEBUG("compressed data write: ");
+          bit_array_print(&array);
+#endif  
+          fwrite(array.data, array.size_bytes, 1, file_out);
+          bit_array_truncate(&array);
+        }
+      }
+    }
+    else
+    {
+      bit_array_finish(&array);
+#if DRC_LOG_DEBUG_EN
+          DRC_LOG_DEBUG("compressed data write: ");
+          bit_array_print(&array);
+#endif       
+      fwrite(array.data, array.size_bytes, 1, file_out);
+    }
+  } while(size);
 
   drc_huff_tab_destroy(tab);
   drc_huff_stats_destroy(stats);
@@ -49,8 +176,7 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
 
   if(!file_in || !file_out)
   {
-    DRC_LOG_ERROR(
-      "failed to open file: %s\n", !file_in ? path_in : path_out);
+    DRC_LOG_ERROR("failed to open file: %s\n", !file_in ? path_in : path_out);
     return;
   }
 
@@ -69,6 +195,7 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
   fclose(file_out);
   fclose(file_in);
 }
+
 drc_core_pack_t *drc_core_compress(uint8_t *input, uint32_t size) 
 { 
   DRC_LOG_INFO("input[%s] size[%u]\n", input, size);  

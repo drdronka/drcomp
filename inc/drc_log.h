@@ -3,6 +3,8 @@
 
 #include "drc_log_cfg.h"
 
+#define DRC_LOG(...) printf(__VA_ARGS__);
+
 #if DRC_LOG_ERROR_EN
   #define DRC_LOG_ERROR(...) fprintf(stderr, __VA_ARGS__);
 #else

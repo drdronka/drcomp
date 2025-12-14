@@ -8,6 +8,8 @@
 
 #define READ_BLOCK_SIZE 4096
 
+#define FILTER_SPEC_CHARS(x) (((x) == 0x0A || (x) == 0x0D) ? '\\' : (x))
+
 static void ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node);
 static drc_huff_node_t *ll_get_first(drc_huff_node_t **root);
 static void ll_print(drc_huff_node_t *root);
@@ -160,9 +162,6 @@ void drc_huff_stats_write(FILE* file_in, drc_huff_stats_t *stats)
       buf[weight_size - i - 1] = (uint8_t)((stats->weight[n] >> (i * 8)) & 0xFF);
     }
 
-    if(n == 1)
-      printf("XXXXX %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3]);
-
     fwrite(buf, weight_size, 1, file_in);
   }
 }
@@ -192,13 +191,12 @@ drc_huff_stats_t *drc_huff_stats_read(FILE* file_in)
 
 void drc_huff_stats_print(drc_huff_stats_t *stats)
 {
-  printf("character stats:\n");
+  DRC_LOG("character stats:\n");
   for(uint32_t n = 0; n < BYTE_RANGE; n++)
   {
     if(stats->weight[n])
     {
-      printf("char[%c][0x%0.2x] weight[%u]\n", 
-        n == '\n' ? '\\' : n, n, stats->weight[n]);
+      DRC_LOG("char[%c][0x%0.2x] weight[%u]\n", FILTER_SPEC_CHARS(n), n, stats->weight[n]);
     }
   }
 }
@@ -217,9 +215,9 @@ void drc_huff_bt_print(drc_huff_node_t *root)
 
     if(!(root->left) && !(root->right))
     {
-      printf(
+      DRC_LOG(
         "huff bt node [%c][0x%0.2x] weight[%u]\n", 
-        root->byte_val, root->byte_val, root->byte_weight);
+        FILTER_SPEC_CHARS(root->byte_val), root->byte_val, root->byte_weight);
     }
 
     if(root->right)
@@ -231,9 +229,9 @@ void drc_huff_ll_print(drc_huff_node_t *root)
 {
   while(root)
   {
-    printf(
+    DRC_LOG(
       "huff ll node [%c][0x%0.2x] weight[%u]\n", 
-      root->byte_val, root->byte_val, root->byte_weight);
+      FILTER_SPEC_CHARS(root->byte_val), root->byte_val, root->byte_weight);
     root = root->next;
   }
 }
@@ -277,8 +275,7 @@ void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
   {
     if(stats->weight[n])
     {
-      DRC_LOG_DEBUG("char[%c][%u] weight[%u]\n",
-        n == '\n' ? '\\' : n, n, stats->weight[n]);
+      DRC_LOG_DEBUG("char[%c][%u] weight[%u]\n", FILTER_SPEC_CHARS(n), n, stats->weight[n]);
       ll_insert(root, drc_huff_node_create(n, stats->weight[n]));
     }
   }
@@ -291,10 +288,8 @@ void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
   while(node1)
   {
     DRC_LOG_DEBUG("[%c][%0.2x][%u] - [%c][%0.2x][%u]\n", 
-      node0->byte_val == '\n' ? '\\' : node0->byte_val, 
-      node0->byte_val, node0->byte_weight,
-      node1->byte_val == '\n' ? '\\' : node1->byte_val, 
-      node1->byte_val, node1->byte_weight);
+      FILTER_SPEC_CHARS(node0->byte_val), node0->byte_val, node0->byte_weight,
+      FILTER_SPEC_CHARS(node1->byte_val), node1->byte_val, node1->byte_weight);
 
     drc_huff_node_t *new_node = bt_merge(node0, node1);
     ll_insert(root, new_node);
@@ -326,18 +321,18 @@ void drc_huff_bt_destroy(drc_huff_node_t *root)
 
 void drc_huff_tab_print(drc_huff_tab_t *tab)
 {
-  printf("coding table:\n");
+  DRC_LOG("coding table:\n");
   for(uint32_t n = 0; n < BYTE_RANGE; n++)
   {
     if(tab->size[n])
     {
-      printf("char[%c][0x%0.2x] code[", n == '\n' ? '\\' : n, n);
+      DRC_LOG("char[%c][0x%0.2x] code[", FILTER_SPEC_CHARS(n), n);
     
       for(uint32_t i = 0; i < tab->size[n]; i++)
       {
-        printf("%c", tab->code[n][i] + '0');
+        DRC_LOG("%c", tab->code[n][i] + '0');
       }
-      printf("]\n");
+      DRC_LOG("]\n");
     }
   }
 }
