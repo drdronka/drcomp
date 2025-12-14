@@ -32,7 +32,7 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
   drc_huff_tab_print(tab);
 #endif
 
-  drc_huff_tab_write(file_out, tab);
+  drc_huff_stats_write(file_out, stats);
 
   drc_huff_tab_destroy(tab);
   drc_huff_stats_destroy(stats);
@@ -43,7 +43,7 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
 
 void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
 {
-  DRC_LOG_INFO("compress: input[%s] output[%s]\n", path_in, path_out);
+  DRC_LOG_INFO("decompress: input[%s] output[%s]\n", path_in, path_out);
 
   FILE* file_in = fopen(path_in, "rb");
   FILE* file_out = fopen(path_out, "wb");
@@ -55,13 +55,13 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
     return;
   }
 
-  drc_huff_tab_t* tab = drc_huff_tab_read(file_in);
+  drc_huff_stats_t *stats = drc_huff_stats_read(file_in);
 
 #if DRC_LOG_DEBUG_EN
-  drc_huff_tab_print(tab);
+  drc_huff_stats_print(stats);
 #endif
 
-  drc_huff_tab_destroy(tab);
+  drc_huff_stats_destroy(stats);
 
   fclose(file_out);
   fclose(file_in);
