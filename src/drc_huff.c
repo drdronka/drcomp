@@ -6,6 +6,8 @@
 #include "drc_huff.h"
 #include "drc_log.h"
 
+#define READ_BLOCK_SIZE 4096
+
 // hybrid bintree/linkedlist structure for Huffman tree
 typedef struct node
 {
@@ -193,6 +195,42 @@ drc_huff_stats_t *drc_huff_stats_calc(uint8_t *input, uint32_t size)
   return stats;
 }
 
+drc_huff_stats_t *drc_huff_stats_calc_from_file(FILE* file_in)
+{
+  drc_huff_stats_t *stats = (drc_huff_stats_t*)malloc(sizeof(drc_huff_stats_t));
+  memset(stats, 0, sizeof(drc_huff_stats_t));
+
+  fseek(file_in, 0, SEEK_SET);
+
+  uint32_t size = 0;
+  do
+  {
+    char buf[READ_BLOCK_SIZE];
+    size = fread(buf, 1, READ_BLOCK_SIZE, file_in);
+    DRC_LOG_DEBUG("stats calc: read block: size[%u]\n", size);
+    
+    for(uint32_t n = 0; n < size; n++)
+    {
+      stats->weight[buf[n]]++;  
+    }
+  }
+  while(size);
+  
+  return stats;
+}
+
+void drc_huff_stats_print(drc_huff_stats_t *stats)
+{
+  printf("character stats:\n");
+  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  {
+    if(stats->weight[n])
+    {
+      printf("char[%c][0x%0.2x] weight[%u]\n", n, n, stats->weight[n]);
+    }
+  }
+}
+
 void drc_huff_stats_destroy(drc_huff_stats_t *stats)
 {
   free(stats);
@@ -242,11 +280,65 @@ drc_huff_tab_t *drc_huff_tab_calc(drc_huff_stats_t *stats)
   return tab;
 }
 
+void drc_huff_tab_write(FILE* file_out, drc_huff_tab_t *tab)
+{
+  DRC_LOG_INFO("writing coding table\n");
+  for(uint32_t n = 0; n < BYTE_RANGE; n++) // code part
+  {
+    fwrite(&(tab->size[n]), 1, 1, file_out); 
+    if(tab->size[n])
+    {
+      fwrite(tab->code[n], tab->size[n], 1, file_out);
+    }
+  }
+}
+
+drc_huff_tab_t *drc_huff_tab_read(FILE* file_in)
+{
+  DRC_LOG_INFO("reading coding table\n");
+
+  drc_huff_tab_t *tab = (drc_huff_tab_t*)malloc(sizeof(drc_huff_tab_t));
+
+  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  {
+    fread(&(tab->size[n]), 1, 1, file_in);
+    if(tab->size[n] == 0)
+    {
+      continue;
+    }
+    tab->code[n] = (uint8_t*)malloc(tab->size[n]);
+    fread(tab->code[n], tab->size[n], 1, file_in);
+  }
+
+  return tab;
+}
+
+void drc_huff_tab_print(drc_huff_tab_t *tab)
+{
+  printf("coding table:\n");
+  for(uint32_t n = 0; n < BYTE_RANGE; n++)
+  {
+    if(tab->size[n])
+    {
+      printf("char[%c][0x%0.2x] code[", n == '\n' ? '\\' : n, n);
+    
+      for(uint32_t i = 0; i < tab->size[n]; i++)
+      {
+        printf("%c", tab->code[n][i] + '0');
+      }
+      printf("]\n");
+    }
+  }
+}
+
 void drc_huff_tab_destroy(drc_huff_tab_t *tab)
 {
   for(uint32_t n = 0; n < BYTE_RANGE; n++)
   {
-    free(tab->code[n]);
+    if(tab->size[n])
+    {
+      free(tab->code[n]);
+    }
   }
   free(tab);
 }

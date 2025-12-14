@@ -13,6 +13,8 @@ typedef struct drc_core_pack
   float ratio;
 } drc_core_pack_t;
 
+void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out);
+void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out);
 drc_core_pack_t *drc_core_compress(uint8_t *input, uint32_t size);
 void drc_core_pack_destroy(drc_core_pack_t *pack);
 
