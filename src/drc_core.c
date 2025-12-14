@@ -57,10 +57,14 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
 
   drc_huff_stats_t *stats = drc_huff_stats_read(file_in);
 
-#if DRC_LOG_DEBUG_EN
+ #if DRC_LOG_DEBUG_EN
   drc_huff_stats_print(stats);
 #endif
 
+  drc_huff_node_t *root = NULL;
+  drc_huff_bt_construct(&root, stats);
+
+  drc_huff_bt_destroy(root);
   drc_huff_stats_destroy(stats);
 
   fclose(file_out);
