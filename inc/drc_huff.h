@@ -5,7 +5,7 @@
 
 typedef struct drc_huff_stats
 {
-  uint8_t weight[BYTE_RANGE];
+  uint32_t weight[BYTE_RANGE];
 } drc_huff_stats_t;
 
 typedef struct drc_huff_tab
@@ -31,8 +31,6 @@ drc_huff_stats_t *drc_huff_stats_read(FILE* file_in);
 void drc_huff_stats_print(drc_huff_stats_t *stats);
 void drc_huff_stats_destroy(drc_huff_stats_t *stats);
 drc_huff_tab_t *drc_huff_tab_calc(drc_huff_stats_t *stats);
-//void drc_huff_tab_write(FILE* file_out, drc_huff_tab_t *tab);
-//drc_huff_tab_t *drc_huff_tab_read(FILE* file_in);
 drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight);
 void drc_huff_node_destroy(drc_huff_node_t *node);
 void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats);

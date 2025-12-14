@@ -152,19 +152,39 @@ void drc_huff_stats_write(FILE* file_in, drc_huff_stats_t *stats)
 
   for(uint32_t n = 0; n < BYTE_RANGE; n++)
   {
-    fwrite(&(stats->weight[n]), 1, 1, file_in);
+    uint8_t weight_size = sizeof(stats->weight[0]);
+    uint8_t buf[sizeof(stats->weight[0])];
+
+    for(uint8_t i = 0; i < weight_size; i++)
+    {
+      buf[weight_size - i - 1] = (uint8_t)((stats->weight[n] >> (i * 8)) & 0xFF);
+    }
+
+    if(n == 1)
+      printf("XXXXX %x %x %x %x\n", buf[0], buf[1], buf[2], buf[3]);
+
+    fwrite(buf, weight_size, 1, file_in);
   }
 }
 
 drc_huff_stats_t *drc_huff_stats_read(FILE* file_in)
 {
-  DRC_LOG_INFO("writing character stats from file\n");
+  DRC_LOG_INFO("reading character stats from file\n");
   
   drc_huff_stats_t *stats = (drc_huff_stats_t*)malloc(sizeof(drc_huff_stats_t));
+  memset(stats, 0, sizeof(drc_huff_stats_t));
 
   for(uint32_t n = 0; n < BYTE_RANGE; n++)
   {
-    fread(&(stats->weight[n]), 1, 1, file_in);
+    uint8_t weight_size = sizeof(stats->weight[0]);
+    uint8_t buf[sizeof(stats->weight[0])];
+
+    fread(buf, weight_size, 1, file_in);
+
+    for(uint8_t i = 0; i < weight_size; i++)
+    {
+      stats->weight[n] |= ((uint32_t)buf[weight_size - i - 1]) << (i * 8);
+    }
   }
 
   return stats;
@@ -247,40 +267,6 @@ void drc_huff_node_destroy(drc_huff_node_t *node)
 {
   free(node);
 }
-
-#if 0
-void drc_huff_tab_write(FILE* file_out, drc_huff_tab_t *tab)
-{
-  DRC_LOG_INFO("writing coding table\n");
-  for(uint32_t n = 0; n < BYTE_RANGE; n++)
-  {
-    fwrite(&(tab->size[n]), 1, 1, file_out); 
-    if(tab->size[n])
-    {
-      fwrite(tab->code[n], tab->size[n], 1, file_out);
-    }
-  }
-}
-
-drc_huff_tab_t *drc_huff_tab_read(FILE* file_in)
-{
-  DRC_LOG_INFO("reading coding table\n");
-
-  drc_huff_tab_t *tab = (drc_huff_tab_t*)malloc(sizeof(drc_huff_tab_t));
-
-  for(uint32_t n = 0; n < BYTE_RANGE; n++)
-  {
-    fread(&(tab->size[n]), 1, 1, file_in);
-    if(tab->size[n])
-    {
-      tab->code[n] = (uint8_t*)malloc(tab->size[n]);
-      fread(tab->code[n], tab->size[n], 1, file_in);
-    }
-  }
-
-  return tab;
-}
-#endif
 
 void drc_huff_bt_construct(drc_huff_node_t **root, drc_huff_stats_t *stats)
 {

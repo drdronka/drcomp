@@ -9,7 +9,6 @@
 
 #define COMP_BLOCK_SIZE 4
 
-
 void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
 {
   DRC_LOG_INFO("compress: input[%s] output[%s]\n", path_in, path_out);
