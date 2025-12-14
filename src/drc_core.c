@@ -7,7 +7,7 @@
 #include "drc_huff.h"
 #include "drc_log.h"
 
-#define COMP_READ_BLOCK_SIZE 1024
+#define COMP_READ_BLOCK_SIZE 16
 #define BIT_ARRAY_SIZE 16
 #define BIT_ARRAY_MARGIN 4
 
@@ -123,13 +123,14 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
 
   drc_huff_stats_write(file_out, stats);
 
+  DRC_LOG_INFO("coding data\n");
   fseek(file_in, 0L, SEEK_SET);
-
-  uint8_t buf_in[COMP_READ_BLOCK_SIZE];
   bit_array_t array = {0};
   uint32_t size;
   do
   {
+    uint8_t buf_in[COMP_READ_BLOCK_SIZE];
+
     size = fread(buf_in, 1, COMP_READ_BLOCK_SIZE, file_in);
     DRC_LOG_DEBUG("read bytes: [%u]\n", size);
 
@@ -196,7 +197,8 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
   fclose(file_in);
 }
 
-drc_core_pack_t *drc_core_compress(uint8_t *input, uint32_t size) 
+#if 0 // deprecated
+void drc_core_compress(uint8_t *input, uint32_t size) 
 { 
   DRC_LOG_INFO("input[%s] size[%u]\n", input, size);  
 
@@ -224,9 +226,4 @@ drc_core_pack_t *drc_core_compress(uint8_t *input, uint32_t size)
 
   return pack;
 }
-
-void drc_core_pack_destroy(drc_core_pack_t *pack)
-{
-  free(pack);
-}
-
+  #endif
