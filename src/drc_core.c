@@ -15,7 +15,6 @@
 typedef struct bit_array
 {
   uint8_t data[BIT_ARRAY_SIZE];
-  uint8_t rem;
   uint32_t size_bits;
   uint32_t size_bytes;
 } bit_array_t;
