@@ -31,10 +31,10 @@ static void decode_and_write(
 
 static inline void bit_array_add(bit_array_t *array, uint8_t *code, uint8_t code_size)
 {
-#if DRC_LOG_DEBUG_EN
-  DRC_LOG("bit_array_add: ");
-  drc_huff_code_print(code, code_size, 1);
-#endif
+  #if DRC_LOG_DEBUG_EN
+    DRC_LOG("bit_array_add: ");
+    drc_huff_code_print(code, code_size, 1);
+  #endif
 
   for(uint32_t bit_n = 0; bit_n < code_size; bit_n++)
   {
@@ -100,10 +100,11 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
         bit_array_add(&array, tab->code[buf_in[n]], tab->size[buf_in[n]]);
         if(array.size_bytes > (BIT_ARRAY_SIZE - BIT_ARRAY_MARGIN))
         {
-#if DRC_LOG_DEBUG_EN
-          DRC_LOG_DEBUG("compressed data write: ");
-          bit_array_print(&array);
-#endif  
+          #if DRC_LOG_DEBUG_EN
+            DRC_LOG_DEBUG("compressed data write: ");
+            bit_array_print(&array);
+          #endif  
+
           fwrite(array.data, array.size_bytes, 1, file_out);
           bit_array_truncate(&array);
         }
@@ -112,10 +113,12 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
     else
     {
       bit_array_finish(&array);
-#if DRC_LOG_DEBUG_EN
-          DRC_LOG_DEBUG("compressed data write: ");
-          bit_array_print(&array);
-#endif
+
+      #if DRC_LOG_DEBUG_EN
+        DRC_LOG_DEBUG("compressed data write: ");
+        bit_array_print(&array);
+      #endif
+
       fwrite(array.data, array.size_bytes, 1, file_out);
     }
   } while(size);
@@ -199,10 +202,10 @@ void drc_core_compress(uint8_t *path_in, uint8_t *path_out)
   drc_huff_stats_t *stats = drc_huff_stats_calc_from_file(file_in);
   drc_huff_tab_t *tab = drc_huff_tab_calc(stats);
 
-#if DRC_LOG_DEBUG_EN
-  drc_huff_stats_print(stats);
-  drc_huff_tab_print(tab);
-#endif
+  #if DRC_LOG_DEBUG_EN
+    drc_huff_stats_print(stats);
+    drc_huff_tab_print(tab);
+  #endif
 
   drc_huff_stats_write(file_out, stats);
   encode_and_write(file_in, file_out, tab);
@@ -244,9 +247,9 @@ void drc_core_decompress(uint8_t *path_in, uint8_t *path_out)
   DRC_LOG_INFO("coding_tab_size[%u] data_size[%u] reminder_bits[%u]\n",
     coding_tab_size, data_size, remainder_bits);
 
- #if DRC_LOG_DEBUG_EN
-  drc_huff_stats_print(stats);
-#endif
+  #if DRC_LOG_DEBUG_EN
+    drc_huff_stats_print(stats);
+  #endif
 
   drc_huff_node_t *root = NULL;
   drc_huff_bt_construct(&root, stats);
