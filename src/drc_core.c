@@ -68,15 +68,15 @@ static void bit_array_finish(bit_array_t *array)
   DRC_LOG_DEBUG("bit_array_finish: size_bytes[%u] size_bits[%u] remainder[%u]\n",
     array->size_bytes, array->size_bits, array->size_bits % 8);
 
-  if(array->size_bits % 8 != 0)
-  {
+  //if(array->size_bits % 8 != 0)
+  //{
     array->data[array->size_bytes + 1] = array->size_bits % 8;
     array->size_bytes += 2;
-  }
-  else
-  {
-    array->size_bytes++;
-  }
+  //}
+  //else
+  //{
+  //  array->size_bytes++;
+  //}
 }
 
 static void bit_array_print(bit_array_t *array)
@@ -129,7 +129,7 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
 #if DRC_LOG_DEBUG_EN
           DRC_LOG_DEBUG("compressed data write: ");
           bit_array_print(&array);
-#endif       
+#endif
       fwrite(array.data, array.size_bytes, 1, file_out);
     }
   } while(size);
@@ -157,11 +157,6 @@ static void decode_and_write(
     {
       DRC_LOG_DEBUG("coded[%0.2x]: ", buf_in[n]);
 
-      if(read_total + n == data_size)
-      {
-        break;
-      }
-
       uint8_t bit_limit = 8;
       if(read_total + n == data_size - 1)
       {
@@ -186,6 +181,11 @@ static void decode_and_write(
           fwrite(buf_out, 1, buf_out_idx, file_out);
           buf_out_idx = 0;
         }
+      }
+
+      if(read_total + n == data_size - 1)
+      {
+        break;
       }
       DRC_LOG_DEBUG("\n");
     }
@@ -225,11 +225,13 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
   drc_huff_stats_write(file_out, stats);
   encode_and_write(file_in, file_out, tab);
 
-  drc_huff_tab_destroy(tab);
-  drc_huff_stats_destroy(stats);
+  //drc_huff_tab_destroy(tab);
+  //drc_huff_stats_destroy(stats);
 
   fclose(file_out);
   fclose(file_in);
+
+  DRC_LOG_INFO("finished\n");
 }
 
 void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
@@ -275,6 +277,8 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
 
   fclose(file_out);
   fclose(file_in);
+
+  DRC_LOG_INFO("finished\n");
 }
 
 #if 0 // deprecated

@@ -16,9 +16,9 @@ static void ll_print(drc_huff_node_t *root);
 static drc_huff_node_t *bt_merge(drc_huff_node_t *node0, drc_huff_node_t *node1);
 static void bt_print(drc_huff_node_t *root);
 static void tab_fill(
-  drc_huff_node_t *root, 
-  drc_huff_tab_t *tab, 
-  uint8_t *curr_code, 
+  drc_huff_node_t *root,
+  drc_huff_tab_t *tab,
+  uint8_t *curr_code,
   uint32_t curr_code_size);
 static void bt_finish(drc_huff_node_t *root);
 
@@ -183,7 +183,7 @@ drc_huff_stats_t *drc_huff_stats_calc_from_file(FILE* file_in)
   uint32_t size = 0;
   do
   {
-    char buf[READ_BLOCK_SIZE];
+    uint8_t buf[READ_BLOCK_SIZE];
     size = fread(buf, 1, READ_BLOCK_SIZE, file_in);
     DRC_LOG_DEBUG("read block: size[%u]\n", size);
     
