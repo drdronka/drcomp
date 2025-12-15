@@ -1,1 +1,1 @@
-gcc.exe src/drc_test.c src/drc_core.c src/drc_huff.c -o bin/test/drc_test -Iinc
+gcc.exe src/drc_test.c src/drc_core.c src/drc_huff.c -o bin/drc_test.exe -Iinc
