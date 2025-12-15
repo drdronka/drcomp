@@ -68,15 +68,8 @@ static void bit_array_finish(bit_array_t *array)
   DRC_LOG_DEBUG("bit_array_finish: size_bytes[%u] size_bits[%u] remainder[%u]\n",
     array->size_bytes, array->size_bits, array->size_bits % 8);
 
-  //if(array->size_bits % 8 != 0)
-  //{
     array->data[array->size_bytes + 1] = array->size_bits % 8;
     array->size_bytes += 2;
-  //}
-  //else
-  //{
-  //  array->size_bytes++;
-  //}
 }
 
 static void bit_array_print(bit_array_t *array)
@@ -225,8 +218,8 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
   drc_huff_stats_write(file_out, stats);
   encode_and_write(file_in, file_out, tab);
 
-  //drc_huff_tab_destroy(tab);
-  //drc_huff_stats_destroy(stats);
+  drc_huff_tab_destroy(tab);
+  drc_huff_stats_destroy(stats);
 
   fclose(file_out);
   fclose(file_in);
