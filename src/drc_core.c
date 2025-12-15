@@ -7,10 +7,10 @@
 #include "drc_huff.h"
 #include "drc_log.h"
 
-#define COMP_READ_BLOCK_SIZE 16
-#define COMP_WRITE_BLOCK_SIZE 16
-#define BIT_ARRAY_SIZE 16
-#define BIT_ARRAY_MARGIN 4
+#define COMP_READ_BLOCK_SIZE 4096
+#define COMP_WRITE_BLOCK_SIZE 4096
+#define BIT_ARRAY_SIZE 1024
+#define BIT_ARRAY_MARGIN 8
 
 typedef struct bit_array
 {
