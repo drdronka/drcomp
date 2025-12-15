@@ -53,7 +53,6 @@ static void ll_insert(drc_huff_node_t **root, drc_huff_node_t *new_node)
         return;
       }
     }
-
     tmp_node->next = new_node;
   }
 }
@@ -79,9 +78,7 @@ static void bt_finish(drc_huff_node_t *root)
   if(root)
   {
     if(root->left)
-    {
       bt_finish(root->left);
-    }
 
     if(!(root->left) && !(root->right))
     {
@@ -90,9 +87,7 @@ static void bt_finish(drc_huff_node_t *root)
     }
 
     if(root->right)
-    {
       bt_finish(root->right);
-    }
   }
 }
 
@@ -133,13 +128,10 @@ static void tab_fill(
 void drc_huff_code_print(uint8_t *code, uint8_t size, uint8_t newline)
 {
   for(uint32_t n = 0; n < size; n++)
-  {
     DRC_LOG("%c", code[n] + '0');
-  }
+  
   if(newline)
-  {
     DRC_LOG("\n");
-  }
 }
 
 drc_huff_node_t *drc_huff_node_create(uint8_t byte_val, uint32_t byte_weight)
@@ -164,9 +156,7 @@ drc_huff_stats_t *drc_huff_stats_calc(uint8_t *input, uint32_t size)
   memset(stats, 0, sizeof(drc_huff_stats_t));
 
   for(uint32_t n = 0; n < size; n++)
-  {
     stats->weight[input[n]]++;
-  }
 
   return stats;
 }
@@ -188,9 +178,7 @@ drc_huff_stats_t *drc_huff_stats_calc_from_file(FILE* file_in)
     DRC_LOG_DEBUG("read block: size[%u]\n", size);
     
     for(uint32_t n = 0; n < size; n++)
-    {
       stats->weight[buf[n]]++;  
-    }
   }
   while(size);
   
@@ -207,9 +195,7 @@ void drc_huff_stats_write(FILE* file_in, drc_huff_stats_t *stats)
     uint8_t buf[sizeof(stats->weight[0])];
 
     for(uint8_t i = 0; i < weight_size; i++)
-    {
       buf[weight_size - i - 1] = (uint8_t)((stats->weight[n] >> (i * 8)) & 0xFF);
-    }
 
     fwrite(buf, 1, weight_size, file_in);
   }
@@ -230,9 +216,7 @@ drc_huff_stats_t *drc_huff_stats_read(FILE* file_in)
     fread(buf, 1, weight_size, file_in);
 
     for(uint8_t i = 0; i < weight_size; i++)
-    {
       stats->weight[n] |= ((uint32_t)buf[weight_size - i - 1]) << (i * 8);
-    }
   }
 
   return stats;
@@ -246,13 +230,10 @@ void drc_huff_stats_destroy(drc_huff_stats_t *stats)
 void drc_huff_stats_print(drc_huff_stats_t *stats)
 {
   DRC_LOG("character stats:\n");
+
   for(uint32_t n = 0; n < BYTE_RANGE; n++)
-  {
     if(stats->weight[n])
-    {
       DRC_LOG("char[%c][0x%0.2x] weight[%u]\n", FILTER_SPEC_CHARS(n), n, stats->weight[n]);
-    }
-  }
 }
 
 drc_huff_tab_t *drc_huff_tab_calc(drc_huff_stats_t *stats)
@@ -287,12 +268,9 @@ void drc_huff_tab_print(drc_huff_tab_t *tab)
 void drc_huff_tab_destroy(drc_huff_tab_t *tab)
 {
   for(uint32_t n = 0; n < BYTE_RANGE; n++)
-  {
     if(tab->size[n])
-    {
       free(tab->code[n]);
-    }
-  }
+
   free(tab);
 }
 
@@ -338,14 +316,10 @@ void drc_huff_bt_destroy(drc_huff_node_t *root)
   if(root)
   {
     if(root->left)
-    {
       drc_huff_bt_destroy(root->left);
-    }
 
     if(root->right)
-    {
       drc_huff_bt_destroy(root->right);
-    }
 
     drc_huff_node_destroy(root);
   }
@@ -359,11 +333,8 @@ void drc_huff_bt_print(drc_huff_node_t *root)
       drc_huff_bt_print(root->left);
 
     if(!(root->left) && !(root->right))
-    {
-      DRC_LOG(
-        "huff bt node [%c][0x%0.2x] weight[%u]\n", 
+      DRC_LOG("huff bt node [%c][0x%0.2x] weight[%u]\n", 
         FILTER_SPEC_CHARS(root->byte_val), root->byte_val, root->byte_weight);
-    }
 
     if(root->right)
       drc_huff_bt_print(root->right);
@@ -374,8 +345,7 @@ void drc_huff_ll_print(drc_huff_node_t *root)
 {
   while(root)
   {
-    DRC_LOG(
-      "huff ll node [%c][0x%0.2x] weight[%u]\n", 
+    DRC_LOG("huff ll node [%c][0x%0.2x] weight[%u]\n", 
       FILTER_SPEC_CHARS(root->byte_val), root->byte_val, root->byte_weight);
     root = root->next;
   }

@@ -41,9 +41,7 @@ static inline void bit_array_add(bit_array_t *array, uint8_t *code, uint8_t code
     array->data[array->size_bytes] |= code[bit_n] << (array->size_bits % 8);
     array->size_bits++;
     if(array->size_bits % 8 == 0)
-    {
       array->size_bytes++;
-    }
   }
 }
 
@@ -55,9 +53,7 @@ static void bit_array_truncate(bit_array_t *array)
   uint8_t reminder = array->data[array->size_bytes];
   memset(array->data, 0, sizeof(array->data));
   if(array->size_bits % 8)
-  {
     array->data[0] = reminder;
-  }
   array->size_bits = array->size_bits % 8;
   array->size_bytes = 0;
 }
@@ -76,9 +72,7 @@ static void bit_array_print(bit_array_t *array)
   for(uint32_t nd = 0; nd < array->size_bytes; nd++)
   {
     for(uint32_t ni = 0; ni < 8; ni++)
-    {
-    DRC_LOG("%c", ((array->data[nd] >> ni) & 1) + '0');
-    }
+      DRC_LOG("%c", ((array->data[nd] >> ni) & 1) + '0');
     DRC_LOG(" ");
   }
   DRC_LOG("\n");
@@ -151,9 +145,7 @@ static void decode_and_write(
 
       uint8_t bit_limit = 8;
       if(read_total + n == data_size - 1)
-      {
         bit_limit = remainder_bits;
-      }
 
       for(uint8_t i = 0; i < bit_limit; i++)
       {
@@ -176,19 +168,17 @@ static void decode_and_write(
       }
 
       if(read_total + n == data_size - 1)
-      {
         break;
-      }
+
       DRC_LOG_DEBUG("\n");
     }
 
     read_total += read_size;
-  } while(read_size);
+  }
+  while(read_size);
 
   if(buf_out_idx)
-  {
-    fwrite(buf_out, 1, buf_out_idx, file_out);
-  }
+    fwrite(buf_out, 1, buf_out_idx, file_out);  
 }
 
 /// GLOBAL FUNC ///
@@ -244,7 +234,7 @@ void drc_core_decompress(uint8_t *path_in, uint8_t *path_out)
   uint8_t remainder_bits;
 
   drc_huff_stats_t *stats = drc_huff_stats_read(file_in);
-  coding_tab_size = sizeof(stats->weight[0]) * BYTE_RANGE;
+  coding_tab_size = sizeof(stats->weight);
 
   fseek(file_in, -1, SEEK_END);
   data_size = ftell(file_in) - coding_tab_size;
