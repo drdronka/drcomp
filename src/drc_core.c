@@ -193,7 +193,7 @@ static void decode_and_write(
 
 /// GLOBAL FUNC ///
 
-void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
+void drc_core_compress(uint8_t *path_in, uint8_t *path_out)
 {
   DRC_LOG_INFO("compress: input[%s] output[%s]\n", path_in, path_out);
 
@@ -226,7 +226,7 @@ void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out)
   DRC_LOG_INFO("finished\n");
 }
 
-void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
+void drc_core_decompress(uint8_t *path_in, uint8_t *path_out)
 {
   DRC_LOG_INFO("decompress: input[%s] output[%s]\n", path_in, path_out);
 
@@ -272,34 +272,3 @@ void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out)
 
   DRC_LOG_INFO("finished\n");
 }
-
-#if 0 // deprecated
-void drc_core_compress(uint8_t *input, uint32_t size) 
-{ 
-  DRC_LOG_INFO("input[%s] size[%u]\n", input, size);  
-
-  drc_huff_stats_t *stats = drc_huff_stats_calc(input, size);
-  drc_huff_tab_t *tab = drc_huff_tab_calc(stats);
-
-  uint8_t tmp_data[1000];
-  uint32_t tmp_data_id = 0;
-  for(uint32_t n = 0; n < size; n++)
-    for(uint32_t i = 0; i < tab->size[input[n]]; i++)
-      tmp_data[tmp_data_id++] = tab->code[input[n]][i];
-
-  DRC_LOG_INFO("compressed data:\n");
-  for(uint32_t n = 0; n < tmp_data_id; n++)
-  {
-    DRC_LOG_INFO("%c", tmp_data[n] + '0');
-  }
-  DRC_LOG_INFO("\ncompression ratio %0.2f\n", 
-    (float)((size * 8) - tmp_data_id) / (float)(size * 8));
-
-  drc_core_pack_t *pack = (drc_core_pack_t*)malloc(sizeof(drc_core_pack_t));
-
-  drc_huff_tab_destroy(tab);
-  drc_huff_stats_destroy(stats);
-
-  return pack;
-}
-  #endif

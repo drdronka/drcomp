@@ -5,8 +5,7 @@
 
 #include "drc_huff.h"
 
-void drc_core_file_compress(uint8_t *path_in, uint8_t *path_out);
-void drc_core_file_decompress(uint8_t *path_in, uint8_t *path_out);
-//void*drc_core_compress(uint8_t *input, uint32_t size);
+void drc_core_compress(uint8_t *path_in, uint8_t *path_out);
+void drc_core_decompress(uint8_t *path_in, uint8_t *path_out);
 
 #endif
