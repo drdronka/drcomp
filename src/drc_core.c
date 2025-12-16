@@ -84,6 +84,8 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
 
   fseek(file_in, 0L, SEEK_SET);
 
+  uint32_t read_total = 0;
+  uint32_t write_total = 0;
   bit_array_t array = {0};
   uint32_t size;
   do
@@ -91,6 +93,7 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
     uint8_t buf_in[COMP_READ_BLOCK_SIZE];
 
     size = fread(buf_in, 1, COMP_READ_BLOCK_SIZE, file_in);
+    read_total += size;
     DRC_LOG_DEBUG("bytes read: [%u]\n", size);
 
     if(size)
@@ -106,6 +109,7 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
           #endif  
 
           fwrite(array.data, array.size_bytes, 1, file_out);
+          write_total += array.size_bytes;
           bit_array_truncate(&array);
         }
       }
@@ -120,8 +124,13 @@ static void encode_and_write(FILE* file_in, FILE* file_out, drc_huff_tab_t *tab)
       #endif
 
       fwrite(array.data, array.size_bytes, 1, file_out);
+      write_total += array.size_bytes;
     }
-  } while(size);
+  }
+  while(size);
+
+  DRC_LOG_INFO("bytes read: [%u]\nbytes written: [%u]\ncompression ratio: [%f]\n",
+    read_total, write_total, (float)(read_total - write_total) / (float)(read_total));
 }
 
 static void decode_and_write(
@@ -181,7 +190,9 @@ static void decode_and_write(
   while(read_size);
 
   if(buf_out_idx)
+  {
     fwrite(buf_out, 1, buf_out_idx, file_out);  
+  }
 }
 
 /// GLOBAL FUNC ///
@@ -216,7 +227,7 @@ void drc_core_compress(uint8_t *path_in, uint8_t *path_out)
   fclose(file_out);
   fclose(file_in);
 
-  DRC_LOG_INFO("finished\n");
+  DRC_LOG_INFO("finished compressing\n");
 }
 
 void drc_core_decompress(uint8_t *path_in, uint8_t *path_out)
@@ -263,5 +274,5 @@ void drc_core_decompress(uint8_t *path_in, uint8_t *path_out)
   fclose(file_out);
   fclose(file_in);
 
-  DRC_LOG_INFO("finished\n");
+  DRC_LOG_INFO("finished decompressing\n");
 }
