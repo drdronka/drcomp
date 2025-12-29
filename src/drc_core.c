@@ -50,10 +50,10 @@ static void bit_array_truncate(bit_array_t *array)
   DRC_LOG_DEBUG("bit_array_truncate: size_bytes[%u] size_bits[%u] remainder[%u]\n", 
     array->size_bytes, array->size_bits, array->size_bits % 8);
 
-  uint8_t reminder = array->data[array->size_bytes];
+  uint8_t remainder = array->data[array->size_bytes];
   memset(array->data, 0, sizeof(array->data));
   if(array->size_bits % 8)
-    array->data[0] = reminder;
+    array->data[0] = remainder;
   array->size_bits = array->size_bits % 8;
   array->size_bytes = 0;
 }
@@ -255,7 +255,7 @@ void drc_core_decompress(uint8_t *path_in, uint8_t *path_out)
 
   fread(&remainder_bits, 1, 1, file_in);
 
-  DRC_LOG_INFO("coding_tab_size[%u] data_size[%u] reminder_bits[%u]\n",
+  DRC_LOG_INFO("coding_tab_size[%u] data_size[%u] remainder_bits[%u]\n",
     coding_tab_size, data_size, remainder_bits);
 
   #if DRC_LOG_DEBUG_EN
